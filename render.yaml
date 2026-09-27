@@ -1,0 +1,5 @@
+   services:
+     - type: web
+       name: tech-debate-bot
+       runtime: python-3.12.7
+       startCommand: python bot.py
