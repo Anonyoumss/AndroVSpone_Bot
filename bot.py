@@ -7,7 +7,6 @@ Main Telegram bot: handlers, /panel UI, timer job, message listener, /getlogs.
 import asyncio
 import json
 import os
-from functools import partial
 from datetime import datetime
 
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, File
@@ -57,7 +56,7 @@ Start debates, configure rules, and let Gemini AI judge the winner!
 /cancel - Stop active debate
 
 {PRIVACY_MODE_GUIDE}"""
-    
+
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
     logger.info(f"User {update.effective_user.id} started bot")
 
@@ -156,15 +155,11 @@ async def show_panel_ui(chat_id: int, context: ContextTypes.DEFAULT_TYPE):
 Click buttons to configure, then START."""
 
     try:
-        await asyncio.get_running_loop().run_in_executor(
-            None,
-            partial(
-                context.bot.send_message,
-                chat_id=chat_id,
-                text=text,
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-            ),
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup(keyboard),
         )
     except Exception as e:
         logger.error(f"Failed to show panel UI: {e}")
@@ -586,12 +581,17 @@ def build_app() -> Application:
     return app
 
 
-def main():
-    """Entry point."""
+async def main():
+    """Entry point - async polling."""
     logger.info("🚀 Starting Tech Debate Bot...")
     app = build_app()
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+    async with app:
+        await app.initialize()
+        await app.start()
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await asyncio.Event().wait()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
